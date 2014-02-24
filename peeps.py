@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 
 
+## TODO:
+# - get education
+# - set up database
+# - put data into database
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
