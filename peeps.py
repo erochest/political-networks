@@ -45,41 +45,30 @@ PROFILE_SELECTORS = [
         ]
 
 
-def page_companies(app, selectors, params, start=0):
-    print('page_companies start={}'.format(start))
+def page_calls(call, key, selectors, params, start=0):
+    print('{} start={}'.format(key, start))
     sparams = params.copy()
     sparams['start'] = start
-    result = app.search_company(
-            selectors=selectors,
-            params=sparams,
-            )
-    result = result['companies']
+    result = call(selectors=selectors, params=sparams)
+    result = result[key]
 
     values = result['values']
     for v in values:
         yield v
     time.sleep(1)
 
-    if result['_total'] > start + len(values):
-        for v in page_companies(app, selectors, params, start=start+len(values)):
+    offset = start + len(values)
+    if result['_total'] > offset:
+        for v in page_calls(call, key, selectors, params, start=offset):
             yield v
 
 
-def page_search(app, selectors, params, start=0):
-    print('page_search start={}'.format(start))
-    sparams = params.copy()
-    sparams['start'] = start
-    result = app.search_profile(selectors=selectors, params=sparams)
-    result = result['people']
+def page_companies(app, selectors, params):
+    return page_calls(app.search_company, 'companies', selectors, params)
 
-    values = result['values']
-    for v in values:
-        yield v
-    time.sleep(1)
 
-    if result['_total'] > start + len(values):
-        for v in page_search(app, selectors, params, start=start+len(values)):
-            yield v
+def page_search(app, selectors, params):
+    return page_calls(app.search_profile, 'people', selectors, params)
 
 
 def main():
