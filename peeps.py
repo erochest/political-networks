@@ -35,6 +35,10 @@ CO_PARAMS={
         ],
     }
 
+PROFILE_SELECTORS = [
+        'id,first-name,last-name,headline,positions',
+        ]
+
 
 def page_companies(app, selectors, params, start=0):
     print('page_companies start={}'.format(start))
@@ -88,7 +92,7 @@ def main():
             'company-name': name,
             })
         for user in users:
-            pprint(user)
+            pprint(application.get_profile(user['id'], selectors=PROFILE_SELECTORS))
 
         print()
 
