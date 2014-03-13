@@ -2,42 +2,30 @@
 
 
 ## TODO:
-# - set up database
 # - put data into database
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from contextlib import closing
 import json
 from linkedin import linkedin
+import os
 import time
 from pprint import pprint
+import sqlite3
 
 from keys import *
 
 
-RETURN_URL   = 'http://localhost:8000'
+RETURN_URL = 'http://localhost:8000'
+DB_NAME = 'obama-orgs.sqlite3'
 
 # Organizing for Action
-OBAMA_ORGS = {
-        'organizing-for-action',
-        'obama-for-america',
-        # 'OFA-Organizing-America-2500151',
-        }
 FREETEXT_SEARCHES = {
-        'Obama for America',
-        'Organizing for Action',
-        'Organizing for America',
+        'Obama for America',            # 'obama-for-america',
+        'Organizing for Action',        # 'organizing-for-action',
+        'Organizing for America',       # this is a group, not organization
         }
-
-POLITICAL_ORGANIZATION = 107
-
-CO_SELECTORS=['companies:(id,name,universal-name,website-url,company-type,industries,locations)']
-CO_PARAMS={
-    'facet': [
-        'industry,{}'.format(POLITICAL_ORGANIZATION),
-        'location,us',
-        ],
-    }
 
 PROFILE_SELECTORS = [
         'id,first-name,last-name,headline,positions,educations',
@@ -78,6 +66,16 @@ def ego_search():
     return users
 
 
+def connect(filename, schema_file='schema.sql'):
+    new = not os.path.exists(filename)
+    cxn = sqlite3.connect(filename)
+    if new:
+        with open(schema_file) as f:
+            sql = f.read()
+        cxn.executescript(sql)
+    return cxn
+
+
 def main():
     authentication = linkedin.LinkedInDeveloperAuthentication(
             API_KEY, API_SECRET,
@@ -86,16 +84,27 @@ def main():
             )
     application = linkedin.LinkedInApplication(authentication)
 
-    for name in FREETEXT_SEARCHES:
-        print(name)
-        print('=' * len(name))
-        users = page_search(application, None, {
-            'company-name': name,
-            })
-        for user in users:
-            pprint(application.get_profile(user['id'], selectors=PROFILE_SELECTORS))
+    with closing(connect(DB_NAME)) as cxn:
+        with closing(cxn.cursor()) as c:
+            for term in FREETEXT_SEARCHES:
+                c.execute(
+                    'INSERT OR IGNORE INTO search_term (term) VALUES (?);',
+                    (term,)
+                    )
+                c.execute('SELECT id FROM search_term WHERE term=?;', (term,))
+                search_id = c.fetchone()[0]
+                print('{} => {}'.format(term, search_id))
+            cxn.commit()
 
-        print()
+                # print(name)
+                # print('=' * len(name))
+                # users = page_search(application, None, {
+                    # 'company-name': name,
+                    # })
+                # for user in users:
+                    # pprint(application.get_profile(user['id'], selectors=PROFILE_SELECTORS))
+
+                # print()
 
 if __name__ == '__main__':
     main()
