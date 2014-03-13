@@ -3,6 +3,7 @@
 
 ## TODO:
 # - put data into database
+# - set up recruiter as admin on application and generate keys for him
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
