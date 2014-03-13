@@ -2,7 +2,6 @@
 
 
 ## TODO:
-# - get education
 # - set up database
 # - put data into database
 
@@ -41,7 +40,7 @@ CO_PARAMS={
     }
 
 PROFILE_SELECTORS = [
-        'id,first-name,last-name,headline,positions',
+        'id,first-name,last-name,headline,positions,educations',
         ]
 
 
@@ -69,6 +68,14 @@ def page_companies(app, selectors, params):
 
 def page_search(app, selectors, params):
     return page_calls(app.search_profile, 'people', selectors, params)
+
+
+def ego_search():
+    users = page_search(application, None, {
+        'first-name': 'Eric',
+        'last-name': 'Rochester',
+        })
+    return users
 
 
 def main():
