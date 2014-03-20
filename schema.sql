@@ -2,16 +2,16 @@ CREATE TABLE search_term (id INTEGER PRIMARY KEY, term TEXT UNIQUE NOT NULL);
 CREATE TABLE person
     (id INTEGER PRIMARY KEY,
         linkedin_id TEXT NOT NULL UNIQUE,
-        firstName TEXT,
-        lastName TEXT);
+        first_name TEXT,
+        last_name TEXT);
 CREATE TABLE education
     (id INTEGER PRIMARY KEY,
         linkedin_id INTEGER NOT NULL UNIQUE,
         person_id INTEGER NOT NULL,
         degree TEXT,
-        endDate TEXT,
-        fieldOfStudy TEXT,
-        schoolName TEXT);
+        end_date TEXT,
+        field_of_study TEXT,
+        school_name TEXT);
 CREATE TABLE position
     (id INTEGER PRIMARY KEY,
         linkedin_id INTEGER NOT NULL UNIQUE,
@@ -20,8 +20,8 @@ CREATE TABLE position
         industry TEXT,
         company_name TEXT,
         title TEXT,
-        startDate DATE,
-        endDate DATE);
+        start_date DATE,
+        end_date DATE);
 
 CREATE TABLE search_term_person
     (search_term_id INTEGER NOT NULL, person_id INTEGER NOT NULL);
