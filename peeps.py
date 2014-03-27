@@ -9,6 +9,7 @@ usage: peeps.py [CONGRESS-FILE.csv]
 ## TODO:
 # - set up recruiter as admin on application and generate keys for him
 # - read from spreadsheet to get the names of congress people and search for "NAME for congress" (search w/quotes) and (for winners) "{Congressman,Congresswoman,Senator} NAME"
+# - alert on failure (service to text?)
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
