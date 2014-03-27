@@ -2,7 +2,6 @@
 
 
 ## TODO:
-# - populate the education table
 # - set up recruiter as admin on application and generate keys for him
 
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -40,7 +39,7 @@ def page_calls(call, key, selectors, params, start=0):
     result = call(selectors=selectors, params=sparams)
     result = result[key]
 
-    values = result['values']
+    values = result.get('values', [])
     for v in values:
         yield v
     time.sleep(1)
@@ -113,6 +112,7 @@ def link_search(c, search_id, person_id):
         (search_id, person_id),
         )
 
+
 def insert_profile(c, search_id, user_profile):
     """Inserts the user profile into the person table and returns the ID."""
     c.execute('''
@@ -137,6 +137,7 @@ def linkedin_date(date):
     if date is None:
         return None
 
+    date.setdefault('month', 1)
     return '{0[year]:04}-{0[month]:02}-01'.format(date)
 
 
@@ -150,10 +151,10 @@ def insert_position(c, person_id, position):
             VALUES (?, ?, ?, ?, ?, ?, ?, ?);
             ''',
         (
-            position['id'], person_id, position['isCurrent'],
-            company['industry'], company['name'],
-            position['title'],
-            linkedin_date(position['startDate']),
+            position.get('id'), person_id, position.get('isCurrent'),
+            company.get('industry'), company.get('name'),
+            position.get('title'),
+            linkedin_date(position.get('startDate')),
             linkedin_date(position.get('endDate')),
         ))
     c.execute('SELECT id FROM position WHERE linkedin_id=?;',
@@ -162,9 +163,31 @@ def insert_position(c, person_id, position):
     return position_id
 
 
+def insert_education(c, person_id, education):
+    """\
+    Inserts one education entry for a person into the DB and returns the ID.
+    """
+    c.execute('''
+        INSERT INTO education
+            (linkedin_id, person_id, degree, end_date, field_of_study, school_name)
+            VALUES (?, ?, ?, ?, ?, ?);
+            ''',
+        (
+            education.get('id'), person_id, education.get('degree'),
+            linkedin_date(education.get('endDate')),
+            education.get('fieldOfStudy'), education.get('schoolName'),
+            ))
+    c.execute('SELECT id FROM education WHERE linkedin_id=?;',
+              (education['id'],))
+    education_id = c.fetchone()[0]
+    return education_id
+
+
 def search_profiles(application, selectors, params):
     users = page_search(application, selectors, params)
     for user in users:
+        if user['id'] == 'private':
+            user['id'] = '~'
         try:
             profile = application.get_profile(user['id'], selectors=PROFILE_SELECTORS)
         except Exception, ex:
@@ -208,6 +231,9 @@ def main():
 
                     for position in profile['positions'].get('values', []):
                         insert_position(c, person_id, position)
+
+                    for education in profile.get('educations', {}).get('values', []):
+                        insert_education(c, person_id, education)
 
                     n += 1
                     if n >= 10:
