@@ -1,4 +1,9 @@
-CREATE TABLE search_term (id INTEGER PRIMARY KEY, term TEXT UNIQUE NOT NULL);
+CREATE TABLE search_term
+    (id INTEGER PRIMARY KEY,
+        term TEXT UNIQUE NOT NULL,
+        female BOOL DEFAULT NULL,
+        chamber CHAR DEFAULT NULL,
+        winner BOOL DEFAULT NULL);
 CREATE TABLE person
     (id INTEGER PRIMARY KEY,
         linkedin_id TEXT NOT NULL UNIQUE,
