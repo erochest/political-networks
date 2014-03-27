@@ -3,6 +3,7 @@
 
 ## TODO:
 # - set up recruiter as admin on application and generate keys for him
+# - read from spreadsheet to get the names of congress people and search for "NAME for congress" (search w/quotes)
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
