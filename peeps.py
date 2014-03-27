@@ -199,6 +199,33 @@ def search_profiles(application, selectors, params):
         yield profile
 
 
+def freetext(application, c, term):
+    search_id = insert_term(c, term)
+    title('{} => {}'.format(term, search_id))
+
+    profiles = search_profiles(application, None, {
+        'company-name': term,
+        })
+    for profile in profiles:
+        person_id = get_profile_id(c, profile)
+        if person_id is not None:
+            link_search(c, search_id, person_id)
+            continue
+
+        person_id = insert_profile(c, search_id, profile)
+        profile['dbid'] = person_id
+        print(
+            '{0[firstName]} {0[lastName]} => {0[dbid]}'.format(
+                profile),
+            )
+
+        for position in profile['positions'].get('values', []):
+            insert_position(c, person_id, position)
+
+        for education in profile.get('educations', {}).get('values', []):
+            insert_education(c, person_id, education)
+
+
 def main():
     authentication = linkedin.LinkedInDeveloperAuthentication(
             API_KEY, API_SECRET,
@@ -210,36 +237,7 @@ def main():
     with closing(connect(DB_NAME)) as cxn:
         with closing(cxn.cursor()) as c:
             for term in FREETEXT_SEARCHES:
-                search_id = insert_term(c, term)
-                title('{} => {}'.format(term, search_id))
-
-                profiles = search_profiles(application, None, {
-                    'company-name': term,
-                    })
-                n = 0
-                for profile in profiles:
-                    person_id = get_profile_id(c, profile)
-                    if person_id is not None:
-                        link_search(c, search_id, person_id)
-                        continue
-
-                    person_id = insert_profile(c, search_id, profile)
-                    profile['dbid'] = person_id
-                    print(
-                        '{0[firstName]} {0[lastName]} => {0[dbid]}'.format(
-                            profile),
-                        )
-
-                    for position in profile['positions'].get('values', []):
-                        insert_position(c, person_id, position)
-
-                    for education in profile.get('educations', {}).get('values', []):
-                        insert_education(c, person_id, education)
-
-                    n += 1
-                    if n >= 10:
-                        break
-
+                freetext(application, c, term)
             cxn.commit()
 
 
