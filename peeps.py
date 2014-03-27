@@ -30,7 +30,7 @@ RETURN_URL = 'http://localhost:8000'
 DB_NAME = 'obama-orgs.sqlite3'
 
 
-Campaign = namedtuple('Campaign', 'state district party female winner senator')
+Campaign = namedtuple('Campaign', 'state district party female winner name')
 
 # Organizing for Action
 FREETEXT_SEARCHES = {
@@ -239,6 +239,22 @@ def search_freetext(application, c, term):
 
 def search_campaign(application, c, campaign):
     pass
+"""
+    if campaign.district == 'S':
+        chamber = 'Senate'
+        title = 'Senator'
+    else:
+        chamber = 'Congress'
+        if int(campaign.female):
+            title = 'Congresswoman'
+        else:
+            title = 'Congressman'
+    search('{0} for {1}'.format(campaign.name, chamber))
+    if int(campaign.winner):
+        search('{0} {1}'.format(title, campaign.name))
+    # Need to change insert_term command
+    # The rest should be just like search_freetext.
+"""
 
 
 def main():
