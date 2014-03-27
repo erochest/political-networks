@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 
 
+"""\
+usage: peeps.py [CONGRESS-FILE.csv]
+"""
+
+
 ## TODO:
 # - set up recruiter as admin on application and generate keys for him
-# - read from spreadsheet to get the names of congress people and search for "NAME for congress" (search w/quotes)
+# - read from spreadsheet to get the names of congress people and search for "NAME for congress" (search w/quotes) and (for winners) "{Congressman,Congresswoman,Senator} NAME"
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
@@ -14,6 +19,7 @@ import os
 import time
 from pprint import pprint
 import sqlite3
+import sys
 
 from keys import *
 
@@ -233,6 +239,14 @@ def main():
             RETURN_URL, linkedin.PERMISSIONS.enums.values()
             )
     application = linkedin.LinkedInApplication(authentication)
+
+    if len(sys.argv) >= 2:
+        congress_file = sys.argv[1]
+        if congress_file in {'-h', '--help', 'help'}:
+            print(__doc__)
+            raise SystemExit()
+    else:
+        congress_file = None
 
     with closing(connect(DB_NAME)) as cxn:
         with closing(cxn.cursor()) as c:
