@@ -12,7 +12,9 @@ usage: peeps.py [CONGRESS-FILE.csv]
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import namedtuple
 from contextlib import closing
+import csv
 import json
 from linkedin import linkedin
 import os
@@ -26,6 +28,9 @@ from keys import *
 
 RETURN_URL = 'http://localhost:8000'
 DB_NAME = 'obama-orgs.sqlite3'
+
+
+Campaign = namedtuple('Campaign', 'state district party female winner senator')
 
 # Organizing for Action
 FREETEXT_SEARCHES = {
@@ -205,7 +210,7 @@ def search_profiles(application, selectors, params):
         yield profile
 
 
-def freetext(application, c, term):
+def search_freetext(application, c, term):
     search_id = insert_term(c, term)
     title('{} => {}'.format(term, search_id))
 
@@ -232,6 +237,10 @@ def freetext(application, c, term):
             insert_education(c, person_id, education)
 
 
+def search_campaign(application, c, campaign):
+    pass
+
+
 def main():
     authentication = linkedin.LinkedInDeveloperAuthentication(
             API_KEY, API_SECRET,
@@ -251,8 +260,15 @@ def main():
     with closing(connect(DB_NAME)) as cxn:
         with closing(cxn.cursor()) as c:
             for term in FREETEXT_SEARCHES:
-                freetext(application, c, term)
+                search_freetext(application, c, term)
             cxn.commit()
+
+    if congress_file:
+        with open(congress_file, 'rb') as f:
+            reader = csv.reader(f)
+            reader.next()
+            for campaign in map(Campaign._make, reader):
+                search_campaign(application, c, campaign)
 
 
 if __name__ == '__main__':
