@@ -8,13 +8,12 @@ usage: peeps.py [CONGRESS-FILE.csv]
 
 ## TODO:
 # - set up recruiter as admin on application and generate keys for him
-# - read from spreadsheet to get the names of congress people and search for "NAME for congress" (search w/quotes) and (for winners) "{Congressman,Congresswoman,Senator} NAME"
-# - alert on failure (service to text?)
+
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
-from contextlib import closing
+from contextlib import closing, contextmanager
 import csv
 import json
 from linkedin import linkedin
@@ -22,13 +21,24 @@ import os
 import time
 from pprint import pprint
 import sqlite3
+import subprocess
 import sys
 
+import requests
+
+# From this import get the LinkedIn API keys and a number to text error messages to:
+# - API_KEY
+# - API_SECRET
+# - USER_TOKEN
+# - USER_SECRET
+# - ALERT_NUMBER
 from keys import *
 
 
 RETURN_URL = 'http://localhost:8000'
 DB_NAME = 'obama-orgs.sqlite3'
+
+TEXTBELT = 'http://textbelt.com/text'
 
 
 Campaign = namedtuple('Campaign', 'state district party female winner name')
@@ -45,6 +55,24 @@ REP_FILE = 'senators.csv'
 PROFILE_SELECTORS = [
         'id,first-name,last-name,headline,positions,educations',
         ]
+
+
+def do_alerts(msg):
+    subprocess.call(
+            [
+                'terminal-notifier',
+                '-title', 'peeps',
+                '-message', msg,
+            ])
+    try:
+        ALERT_NUMBER
+    except NameError:
+        pass
+    else:
+        requests.post(TEXTBELT, data={
+            'number': ALERT_NUMBER,
+            'message': msg,
+            })
 
 
 def page_calls(call, key, selectors, params, start=0):
@@ -297,6 +325,15 @@ def to_campaign(row):
     return Campaign._make(row)
 
 
+@contextmanager
+def alert_exc():
+    try:
+        yield
+    except Exception, ex:
+        do_alerts(str(ex).splitlines()[0])
+        raise ex
+
+
 def main():
     authentication = linkedin.LinkedInDeveloperAuthentication(
             API_KEY, API_SECRET,
@@ -307,17 +344,18 @@ def main():
 
     with closing(connect(DB_NAME)) as cxn:
         with closing(cxn.cursor()) as c:
-            for term in FREETEXT_SEARCHES:
-                search_freetext(application, c, term)
-            cxn.commit()
+            with alert_exc():
+                for term in FREETEXT_SEARCHES:
+                    search_freetext(application, c, term)
+                cxn.commit()
 
-            if REP_FILE and os.path.exists(REP_FILE):
-                with open(REP_FILE, 'rb') as f:
-                    reader = csv.reader(f)
-                    reader.next()
-                    for campaign in map(to_campaign, reader):
-                        search_campaign(application, c, campaign)
-                        cxn.commit()
+                if REP_FILE and os.path.exists(REP_FILE):
+                    with open(REP_FILE, 'rb') as f:
+                        reader = csv.reader(f)
+                        reader.next()
+                        for campaign in map(to_campaign, reader):
+                            search_campaign(application, c, campaign)
+                            cxn.commit()
 
 
 if __name__ == '__main__':
