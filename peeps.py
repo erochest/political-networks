@@ -40,6 +40,8 @@ FREETEXT_SEARCHES = {
         'Organizing for America',       # this is a group, not organization
         }
 
+REP_FILE = 'senators.csv'
+
 PROFILE_SELECTORS = [
         'id,first-name,last-name,headline,positions,educations',
         ]
@@ -101,6 +103,20 @@ def insert_term(c, term):
         (term,)
         )
     c.execute('SELECT id FROM search_term WHERE term=?;', (term,))
+    search_id = c.fetchone()[0]
+    return search_id
+
+
+def insert_campaign(c, campaign):
+    """Inserts the campaign into the search_term table and returns its ID."""
+    c.execute('''
+        INSERT OR IGNORE INTO search_term
+        (term, female, chamber, winner)
+        VALUES (?, ?, ?, ?);
+        ''',
+        (campaign.name, campaign.female, campaign.district, campaign.winner),
+        )
+    c.execute('SELECT id FROM search_term WHERE term=?;', (campaign.name,))
     search_id = c.fetchone()[0]
     return search_id
 
@@ -211,8 +227,7 @@ def search_profiles(application, selectors, params):
         yield profile
 
 
-def search_freetext(application, c, term):
-    search_id = insert_term(c, term)
+def search(application, c, search_id, term):
     title('{} => {}'.format(term, search_id))
 
     profiles = search_profiles(application, None, {
@@ -238,24 +253,48 @@ def search_freetext(application, c, term):
             insert_education(c, person_id, education)
 
 
+def search_freetext(application, c, term):
+    search_id = insert_term(c, term)
+    search(application, c, search_id, term)
+
+
 def search_campaign(application, c, campaign):
-    pass
-"""
     if campaign.district == 'S':
         chamber = 'Senate'
         title = 'Senator'
     else:
         chamber = 'Congress'
-        if int(campaign.female):
+        if campaign.female:
             title = 'Congresswoman'
         else:
             title = 'Congressman'
-    search('{0} for {1}'.format(campaign.name, chamber))
-    if int(campaign.winner):
-        search('{0} {1}'.format(title, campaign.name))
-    # Need to change insert_term command
-    # The rest should be just like search_freetext.
-"""
+
+    search_id = insert_campaign(c, campaign)
+    search(
+            application,
+            c,
+            search_id,
+            '{0} for {1}'.format(campaign.name, chamber),
+            )
+    if campaign.winner:
+        search(
+                application,
+                c,
+                search_id,
+                '{0} {1}'.format(title, campaign.name),
+                )
+
+
+def to_campaign(row):
+    try:
+        row[3] = bool(int(row[3]))
+    except:
+        pass
+    try:
+        row[4] = bool(int(row[4]))
+    except:
+        pass
+    return Campaign._make(row)
 
 
 def main():
@@ -266,26 +305,19 @@ def main():
             )
     application = linkedin.LinkedInApplication(authentication)
 
-    if len(sys.argv) >= 2:
-        congress_file = sys.argv[1]
-        if congress_file in {'-h', '--help', 'help'}:
-            print(__doc__)
-            raise SystemExit()
-    else:
-        congress_file = None
-
     with closing(connect(DB_NAME)) as cxn:
         with closing(cxn.cursor()) as c:
             for term in FREETEXT_SEARCHES:
                 search_freetext(application, c, term)
             cxn.commit()
 
-    if congress_file:
-        with open(congress_file, 'rb') as f:
-            reader = csv.reader(f)
-            reader.next()
-            for campaign in map(Campaign._make, reader):
-                search_campaign(application, c, campaign)
+            if REP_FILE and os.path.exists(REP_FILE):
+                with open(REP_FILE, 'rb') as f:
+                    reader = csv.reader(f)
+                    reader.next()
+                    for campaign in map(to_campaign, reader):
+                        search_campaign(application, c, campaign)
+                        cxn.commit()
 
 
 if __name__ == '__main__':
