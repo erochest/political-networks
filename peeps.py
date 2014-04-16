@@ -7,6 +7,7 @@ usage: peeps.py [CONGRESS-FILE.csv]
 
 
 ## TODO:
+# - keep list of errors, but don't stop
 # - set up recruiter as admin on application and generate keys for him
 
 
